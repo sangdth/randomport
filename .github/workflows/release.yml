@@ -81,6 +81,7 @@ jobs:
             certutil -hashfile ${{ matrix.output_name }} SHA256 > ${{ matrix.asset_name }}.sha256
           else
             shasum -a 256 ${{ matrix.output_name }} > ${{ matrix.asset_name }}.sha256
+          fi
         shell: bash
 
       - name: Upload Release Assets
@@ -90,4 +91,3 @@ jobs:
           files: |
             ${{ matrix.output_name }}
             ${{ matrix.asset_name }}.sha256
-
