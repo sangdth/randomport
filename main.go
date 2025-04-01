@@ -13,6 +13,9 @@ import (
 	lipgloss "github.com/charmbracelet/lipgloss"
 )
 
+// Version is set during build using ldflags
+var Version = "dev"
+
 func main() {
 	p := tea.NewProgram(initModel())
 
