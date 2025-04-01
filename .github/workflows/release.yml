@@ -90,4 +90,3 @@ jobs:
         files: |
           ${{ matrix.output_name }}
           ${{ matrix.asset_name }}.sha256
-          
