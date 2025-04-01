@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
@@ -14,30 +14,30 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
-    
+
     steps:
-    - name: Extract version
-      id: get_version
-      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      
-    - name: Check if tag exists
-      id: check_tag
-      run: |
-        if gh release view ${{ github.ref_name }} > /dev/null 2>&1; then
-          echo "tag_exists=true" >> $GITHUB_ENV
-        else
-          echo "tag_exists=false" >> $GITHUB_ENV
-        fi
-      
-    - name: Create Release
-      id: create_release
-      if: ${{ steps.check_tag.outputs.tag_exists == 'false' }}
-      uses: softprops/action-gh-release@v1
-      with:
-        name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-        generate_release_notes: true
+      - name: Extract version
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if gh release view ${{ github.ref_name }} > /dev/null 2>&1; then
+            echo "tag_exists=true" >> $GITHUB_ENV
+          else
+            echo "tag_exists=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create Release
+        id: create_release
+        if: ${{ steps.check_tag.outputs.tag_exists == 'false' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
 
   build:
     name: Build and Upload Release Assets
@@ -58,35 +58,36 @@ jobs:
           - os: windows-latest
             output_name: randomport.exe
             asset_name: randomport-windows-amd64.exe
-    
+
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
+      - name: Check out code
+        uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.24.x'
-        cache: true
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache: true
 
-    - name: Install dependencies
-      run: go mod download
+      - name: Install dependencies
+        run: go mod download
 
-    - name: Build
-      run: go build -v -o ${{ matrix.output_name }} -ldflags "-X main.Version=${{ needs.release.outputs.version }}"
+      - name: Build
+        run: go build -v -o ${{ matrix.output_name }} -ldflags "-X main.Version=${{ needs.release.outputs.version }}"
 
-    - name: Generate checksum
-      run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          certutil -hashfile ${{ matrix.output_name }} SHA256 > ${{ matrix.asset_name }}.sha256
-        else
-          shasum -a 256 ${{ matrix.output_name }} > ${{ matrix.asset_name }}.sha256
-      shell: bash
+      - name: Generate checksum
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            certutil -hashfile ${{ matrix.output_name }} SHA256 > ${{ matrix.asset_name }}.sha256
+          else
+            shasum -a 256 ${{ matrix.output_name }} > ${{ matrix.asset_name }}.sha256
+        shell: bash
 
-    - name: Upload Release Assets
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref }}
-        files: |
-          ${{ matrix.output_name }}
-          ${{ matrix.asset_name }}.sha256
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          files: |
+            ${{ matrix.output_name }}
+            ${{ matrix.asset_name }}.sha256
+
