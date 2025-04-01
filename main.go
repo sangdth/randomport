@@ -54,6 +54,7 @@ var (
 type model struct {
 	inputs  []textinput.Model
 	focused int
+	result  int
 	err     error
 }
 
@@ -90,6 +91,7 @@ func initModel() model {
 	return model{
 		inputs:  inputs,
 		focused: len(inputs) - 1,
+		result:  portGenerator(minPort, maxPort),
 		err:     nil,
 	}
 }
@@ -102,14 +104,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
 
 	switch msg := msg.(type) {
-	// catch the key press 'message'
+	// We could have focus and blur "message"
+	// case tea.FocusMsg:
+	// 	m.focused = true
+	// case tea.BlurMsg:
+	// 	m.focused = false
+	// for now, catch the key press 'message' only
 	case tea.KeyMsg:
+		switch msg.String() {
+		case "q":
+			return m, tea.Quit
+		}
+		// catch special keys and combinations
 		switch msg.Type {
 		case tea.KeyEnter:
-			if m.focused == len(m.inputs)-1 {
-				return m, tea.Quit
-			}
-			m.nextInput()
+			m.regenerate()
 		case tea.KeyEsc, tea.KeyCtrlC:
 			return m, tea.Quit
 		case tea.KeyTab:
@@ -127,6 +136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// We need this to reflex the changes in the input
 	for i := range m.inputs {
 		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
 	}
@@ -141,7 +151,6 @@ func (m model) View() string {
 
 	%s  %s
 	%s  %s
-
 	%s  
 	%s
 
@@ -154,12 +163,16 @@ func (m model) View() string {
 		m.inputs[minIndex].View(),
 		m.inputs[maxIndex].View(),
 		labelStyle.Width(resultWidth).Render("Random port"),
-		"55123", // TODO: Replace with random port later
+		strconv.Itoa(m.result),
 		normalStyle.Render("Press Tab/Shift+Tab to switch between inputs"),
 		normalStyle.Render("Press Enter to regenrate and copy"),
-		normalStyle.Render("Press Esc/Ctrl+C to quit"),
+		normalStyle.Render("Press Esc/Ctrl+C or 'q' to quit"),
 	) + "\n"
 
+}
+
+func (m *model) regenerate() {
+	m.result = portGenerator(minPort, maxPort)
 }
 
 // TODO: understand why we use *model here
