@@ -188,6 +188,7 @@ func (m model) View() string {
 
 func (m *model) regenerate() {
 	m.result = portGenerator(minPort, maxPort)
+	m.inputs[resultIndex].Placeholder = strconv.Itoa(m.result)
 }
 
 // TODO: understand why we use *model here
