@@ -187,7 +187,35 @@ func (m model) View() string {
 }
 
 func (m *model) regenerate() {
-	m.result = portGenerator(minPort, maxPort)
+	// Get min value from input or use placeholder
+	minStr := m.inputs[minIndex].Value()
+	if minStr == "" {
+		minStr = m.inputs[minIndex].Placeholder
+	}
+	min, err := strconv.Atoi(minStr)
+	if err != nil {
+		m.err = err
+		return
+	}
+
+	// Get max value from input or use placeholder
+	maxStr := m.inputs[maxIndex].Value()
+	if maxStr == "" {
+		maxStr = m.inputs[maxIndex].Placeholder
+	}
+	max, err := strconv.Atoi(maxStr)
+	if err != nil {
+		m.err = err
+		return
+	}
+
+	// Validate min < max
+	if min >= max {
+		m.err = fmt.Errorf("min port must be less than max port")
+		return
+	}
+
+	m.result = portGenerator(min, max)
 	m.inputs[resultIndex].Placeholder = strconv.Itoa(m.result)
 }
 
