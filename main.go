@@ -28,6 +28,7 @@ type (
 const (
 	minIndex = iota
 	maxIndex
+	resultIndex
 )
 
 const (
@@ -72,7 +73,9 @@ func portGenerator(min int, max int) int {
 }
 
 func initModel() model {
-	var inputs []textinput.Model = make([]textinput.Model, 2)
+	var inputs []textinput.Model = make([]textinput.Model, 3)
+
+	var initResult = portGenerator(minPort, maxPort)
 
 	inputs[minIndex] = textinput.New()
 	inputs[minIndex].Placeholder = strconv.Itoa(minPort)
@@ -88,10 +91,17 @@ func initModel() model {
 	inputs[maxIndex].Prompt = ""
 	inputs[maxIndex].Validate = portValidator
 
+	inputs[resultIndex] = textinput.New()
+	inputs[resultIndex].Placeholder = strconv.Itoa(initResult)
+	inputs[resultIndex].CharLimit = 5
+	inputs[resultIndex].Width = resultWidth
+	inputs[resultIndex].Prompt = ""
+	inputs[resultIndex].Validate = portValidator
+
 	return model{
 		inputs:  inputs,
 		focused: len(inputs) - 1,
-		result:  portGenerator(minPort, maxPort),
+		result:  initResult,
 		err:     nil,
 	}
 }
@@ -111,14 +121,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// 	m.focused = false
 	// for now, catch the key press 'message' only
 	case tea.KeyMsg:
+		// I added this way just to remember that we could have another way to catch the message
 		switch msg.String() {
-		case "q":
+		case "q", "ctrl+c":
 			return m, tea.Quit
 		}
 		// catch special keys and combinations
 		switch msg.Type {
 		case tea.KeyEnter:
-			m.regenerate()
+			if m.focused == len(m.inputs)-1 {
+				m.regenerate()
+			} else {
+				m.nextInput()
+			}
 		case tea.KeyEsc, tea.KeyCtrlC:
 			return m, tea.Quit
 		case tea.KeyTab:
@@ -163,7 +178,7 @@ func (m model) View() string {
 		m.inputs[minIndex].View(),
 		m.inputs[maxIndex].View(),
 		labelStyle.Width(resultWidth).Render("Random port"),
-		strconv.Itoa(m.result),
+		m.inputs[resultIndex].View(),
 		normalStyle.Render("Press Tab/Shift+Tab to switch between inputs"),
 		normalStyle.Render("Press Enter to regenrate and copy"),
 		normalStyle.Render("Press Esc/Ctrl+C or 'q' to quit"),
