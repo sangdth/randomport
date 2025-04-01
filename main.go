@@ -10,7 +10,7 @@ import (
 	"time"
 
 	textinput "github.com/charmbracelet/bubbles/textinput"
-	// tea "github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	lipgloss "github.com/charmbracelet/lipgloss"
 )
 
@@ -72,4 +72,23 @@ func initModel() model {
 		focused: 0,
 		err:     nil,
 	}
+}
+
+func (m model) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+func (m model) Update(msg tea.Msg) (model, tea.Cmd) {
+	var cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		// catch the key press
+	case errMsg:
+		m.err = msg
+		return m, nil
+	}
+
+	// TODO: understand the tea.Batch()
+	return m, tea.Batch(cmds...)
 }
