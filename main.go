@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/atotto/clipboard"
 	textinput "github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	lipgloss "github.com/charmbracelet/lipgloss"
@@ -72,10 +73,15 @@ func portGenerator(min int, max int) int {
 	return r.Intn(max-min) + min
 }
 
+func copyToClipboard(value int) error {
+	return clipboard.WriteAll(strconv.Itoa(value))
+}
+
 func initModel() model {
 	var inputs []textinput.Model = make([]textinput.Model, 3)
 
 	var initResult = portGenerator(minPort, maxPort)
+	copyToClipboard(initResult)
 
 	inputs[minIndex] = textinput.New()
 	inputs[minIndex].Placeholder = strconv.Itoa(minPort)
@@ -180,7 +186,7 @@ func (m model) View() string {
 		labelStyle.Width(resultWidth).Render("Random port"),
 		m.inputs[resultIndex].View(),
 		normalStyle.Render("Press Tab/Shift+Tab to switch between inputs"),
-		normalStyle.Render("Press Enter to regenrate and copy"),
+		normalStyle.Render("Press Enter to regenerate and copy to clipboard"),
 		normalStyle.Render("Press Esc/Ctrl+C or 'q' to quit"),
 	) + "\n"
 
@@ -217,6 +223,7 @@ func (m *model) regenerate() {
 
 	m.result = portGenerator(min, max)
 	m.inputs[resultIndex].Placeholder = strconv.Itoa(m.result)
+	copyToClipboard(m.result)
 }
 
 // TODO: understand why we use *model here
