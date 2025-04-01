@@ -1,5 +1,8 @@
 # RandomPort - Terminal Port Generator
 
+<img width="498" alt="Screenshot 2025-04-01 at 23 58 03" src="https://github.com/user-attachments/assets/07b4e2e4-f6fc-4898-8cd3-39afaa8706ed" />
+
+
 ## Introduction
 
 RandomPort is a terminal-based application that generates random port numbers within a specified range. It was designed to:
