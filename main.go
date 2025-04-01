@@ -1,12 +1,10 @@
 package main
 
 import (
-	// "fmt"
-	// "log"
-	"strconv"
-	// "strings"
-
+	"fmt"
+	"log"
 	"math/rand"
+	"strconv"
 	"time"
 
 	textinput "github.com/charmbracelet/bubbles/textinput"
@@ -15,10 +13,26 @@ import (
 )
 
 func main() {
+	p := tea.NewProgram(initModel())
+
+	if _, err := p.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 type (
 	errMsg error
+)
+
+// Index starts from 0 with iota
+const (
+	minIndex = iota
+	maxIndex
+)
+
+const (
+	rangeWidth  = 10
+	resultWidth = 30
 )
 
 // We will do the setup configuration later, let's hardcoded for now
@@ -33,7 +47,7 @@ const (
 )
 
 var (
-	inputStyle  = lipgloss.NewStyle().Foreground(hotPink)
+	labelStyle  = lipgloss.NewStyle().Foreground(hotPink)
 	normalStyle = lipgloss.NewStyle().Foreground(darkGray)
 )
 
@@ -41,6 +55,12 @@ type model struct {
 	inputs  []textinput.Model
 	focused int
 	err     error
+}
+
+func portValidator(s string) error {
+	_, err := strconv.ParseInt(s, 10, 32)
+
+	return err
 }
 
 func portGenerator(min int, max int) int {
@@ -53,23 +73,23 @@ func portGenerator(min int, max int) int {
 func initModel() model {
 	var inputs []textinput.Model = make([]textinput.Model, 2)
 
-	inputs[minPort] = textinput.New()
-	inputs[minPort].Placeholder = strconv.Itoa(minPort)
-	inputs[minPort].CharLimit = 5
-	inputs[minPort].Width = 30
-	inputs[minPort].Prompt = ""
-	// TODO: We will do validator later
-	// inputs[minPort].Validate = minValidator
+	inputs[minIndex] = textinput.New()
+	inputs[minIndex].Placeholder = strconv.Itoa(minPort)
+	inputs[minIndex].CharLimit = 5
+	inputs[minIndex].Width = rangeWidth
+	inputs[minIndex].Prompt = ""
+	inputs[minIndex].Validate = portValidator
 
-	inputs[maxPort] = textinput.New()
-	inputs[maxPort].Placeholder = strconv.Itoa(maxPort)
-	inputs[maxPort].CharLimit = 5
-	inputs[maxPort].Width = 30
-	inputs[maxPort].Prompt = ""
+	inputs[maxIndex] = textinput.New()
+	inputs[maxIndex].Placeholder = strconv.Itoa(maxPort)
+	inputs[maxIndex].CharLimit = 5
+	inputs[maxIndex].Width = rangeWidth
+	inputs[maxIndex].Prompt = ""
+	inputs[maxIndex].Validate = portValidator
 
 	return model{
 		inputs:  inputs,
-		focused: 0,
+		focused: len(inputs) - 1,
 		err:     nil,
 	}
 }
@@ -78,17 +98,81 @@ func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m model) Update(msg tea.Msg) (model, tea.Cmd) {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
 
 	switch msg := msg.(type) {
+	// catch the key press 'message'
 	case tea.KeyMsg:
-		// catch the key press
+		switch msg.Type {
+		case tea.KeyEnter:
+			if m.focused == len(m.inputs)-1 {
+				return m, tea.Quit
+			}
+			m.nextInput()
+		case tea.KeyEsc, tea.KeyCtrlC:
+			return m, tea.Quit
+		case tea.KeyTab:
+			m.nextInput()
+		case tea.KeyShiftTab:
+			m.prevInput()
+		}
+		for i := range m.inputs {
+			m.inputs[i].Blur()
+		}
+		m.inputs[m.focused].Focus()
+	// catch the error message
 	case errMsg:
 		m.err = msg
 		return m, nil
 	}
 
+	for i := range m.inputs {
+		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	}
+
 	// TODO: understand the tea.Batch()
 	return m, tea.Batch(cmds...)
+}
+
+func (m model) View() string {
+	return fmt.Sprintf(
+		`	Random Port Generator
+
+	%s  %s
+	%s  %s
+
+	%s  
+	%s
+
+	%s
+	%s
+	%s
+`,
+		labelStyle.Width(rangeWidth).Render("Min:"),
+		labelStyle.Width(rangeWidth).Render("Max:"),
+		m.inputs[minIndex].View(),
+		m.inputs[maxIndex].View(),
+		labelStyle.Width(resultWidth).Render("Random port"),
+		"55123", // TODO: Replace with random port later
+		normalStyle.Render("Press Tab/Shift+Tab to switch between inputs"),
+		normalStyle.Render("Press Enter to regenrate and copy"),
+		normalStyle.Render("Press Esc/Ctrl+C to quit"),
+	) + "\n"
+
+}
+
+// TODO: understand why we use *model here
+func (m *model) nextInput() {
+	m.focused = (m.focused + 1) % len(m.inputs)
+}
+
+func (m *model) prevInput() {
+	m.focused--
+
+	// We do this so the input will jump back to the max focus index
+	// when it reaches the min index
+	if m.focused < 0 {
+		m.focused = len(m.inputs) - 1
+	}
 }
